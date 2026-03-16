@@ -249,7 +249,12 @@ using luisa::compute::min;
 [[nodiscard]] SampledSpectrum abs(const SampledSpectrum &t) noexcept;
 [[nodiscard]] SampledSpectrum sqrt(const SampledSpectrum &t) noexcept;
 [[nodiscard]] SampledSpectrum exp(const SampledSpectrum &t) noexcept;
-// TODO: other math functions
+[[nodiscard]] SampledSpectrum log(const SampledSpectrum &t) noexcept;
+[[nodiscard]] SampledSpectrum pow(const SampledSpectrum &base, Expr<float> exp) noexcept;
+[[nodiscard]] SampledSpectrum pow(const SampledSpectrum &base, const SampledSpectrum &exp) noexcept;
+[[nodiscard]] SampledSpectrum floor(const SampledSpectrum &t) noexcept;
+[[nodiscard]] SampledSpectrum ceil(const SampledSpectrum &t) noexcept;
+[[nodiscard]] SampledSpectrum round(const SampledSpectrum &t) noexcept;
 
 using luisa::lerp;
 using luisa::compute::fma;

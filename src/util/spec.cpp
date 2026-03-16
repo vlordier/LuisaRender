@@ -481,6 +481,39 @@ SampledSpectrum exp(const SampledSpectrum &t) noexcept {
     return t.map([](auto x) noexcept { return exp(x); });
 }
 
+SampledSpectrum log(const SampledSpectrum &t) noexcept {
+    return t.map([](auto x) noexcept { return log(x); });
+}
+
+SampledSpectrum pow(const SampledSpectrum &base, Expr<float> exp) noexcept {
+    return base.map([exp](auto x) noexcept { return pow(x, exp); });
+}
+
+SampledSpectrum pow(const SampledSpectrum &base, const SampledSpectrum &exp) noexcept {
+    auto n = std::max(base.dimension(), exp.dimension());
+    LUISA_ASSERT((base.dimension() == 1u || base.dimension() == n) &&
+                     (exp.dimension() == 1u || exp.dimension() == n),
+                 "Invalid spectrum dimensions for pow: (base = {}, exp = {}).",
+                 base.dimension(), exp.dimension());
+    auto ans = SampledSpectrum{n};
+    compute::outline([&] {
+        for (auto i = 0u; i < n; i++) { ans[i] = pow(base[i], exp[i]); }
+    });
+    return ans;
+}
+
+SampledSpectrum floor(const SampledSpectrum &t) noexcept {
+    return t.map([](auto x) noexcept { return floor(x); });
+}
+
+SampledSpectrum ceil(const SampledSpectrum &t) noexcept {
+    return t.map([](auto x) noexcept { return ceil(x); });
+}
+
+SampledSpectrum round(const SampledSpectrum &t) noexcept {
+    return t.map([](auto x) noexcept { return round(x); });
+}
+
 SampledSpectrum max(const SampledSpectrum &a, Expr<float> b) noexcept {
     return a.map([b](auto x) noexcept { return max(x, b); });
 }
