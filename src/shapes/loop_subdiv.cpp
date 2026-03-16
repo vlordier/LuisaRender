@@ -12,8 +12,8 @@ namespace luisa::render {
 
 static constexpr auto max_loop_subdivision_level = 10u;
 
-    // TODO: preserve UV mapping — loop subdivision currently zeros out UVs; they need to be
-    //       interpolated using the same Loop subdivision weights applied to positions.
+// TODO: preserve UV mapping — loop subdivision currently zeros out UVs; they need to be
+//       interpolated using the same Loop subdivision weights applied to positions.
 class LoopSubdiv : public Shape {
 
 private:

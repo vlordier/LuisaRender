@@ -155,4 +155,4 @@ public:
 
 [[nodiscard]] ThreadPool &global_thread_pool() noexcept;
 
-}// namespace luisa
+}// namespace luisa::render

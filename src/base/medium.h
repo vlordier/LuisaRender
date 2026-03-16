@@ -151,16 +151,16 @@ public:
             // Generate ray majorant samples until termination
             SampledSpectrum T_maj(swl().dimension(), 1.f);
             Bool done = def(false);
-            $while(!done) {
+            $while (!done) {
                 // Get next majorant segment from iterator and sample it
                 auto seg = majorant_iter->next();
-                $if(seg.empty) {
+                $if (seg.empty) {
                     done = true;
                     $break;
                 };
 
                 // Handle zero-valued majorant for current segment
-                $if(seg.sigma_maj[0u] == 0.f) {
+                $if (seg.sigma_maj[0u] == 0.f) {
                     Float dt = seg.t_max - seg.t_min;
                     // Handle infinite _dt_ for ray majorant segment
                     dt = ite(isinf(dt), std::numeric_limits<float>::max(), dt);
@@ -171,16 +171,16 @@ public:
 
                 // Generate samples along current majorant segment
                 Float t_min = seg.t_min;
-                $while(true) {
+                $while (true) {
                     // Try to generate sample along current majorant segment
                     Float t = t_min + sample_exponential(u_local, seg.sigma_maj[0u]);
                     u_local = rng.uniform_float();
-                    $if(t < seg.t_max) {
+                    $if (t < seg.t_max) {
                         // Call callback function for sample within segment
                         T_maj *= exp(-(t - t_min) * seg.sigma_maj);
                         Float3 p = ray()->origin() + ray()->direction() * t;
                         auto closure_t = instance()->closure(make_ray(p, ray()->direction()), swl(), time());
-                        $if(!callback(std::move(closure_t), seg.sigma_maj, T_maj)) {
+                        $if (!callback(std::move(closure_t), seg.sigma_maj, T_maj)) {
                             // Returning out of doubly-nested while loop is not as good perf. wise
                             // on the GPU vs using "done" here.
                             done = true;

@@ -52,9 +52,9 @@ public:
                                                                       const SampledWavelengths &swl,
                                                                       Expr<float> time) const noexcept = 0;
         [[nodiscard]] virtual LightSampler::Sample _sample_light_le(
-                                                          Expr<uint> tag, Expr<float2> u_light, Expr<float2> u_direction,
-                                                          const SampledWavelengths &swl,
-                                                          Expr<float> time) const noexcept = 0;
+            Expr<uint> tag, Expr<float2> u_light, Expr<float2> u_direction,
+            const SampledWavelengths &swl,
+            Expr<float> time) const noexcept = 0;
 
     public:
         explicit Instance(const Pipeline &pipeline, const LightSampler *light_dist) noexcept

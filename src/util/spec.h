@@ -179,7 +179,7 @@ public:
         });                                                                                        \
         return *this;                                                                              \
     }                                                                                              \
-    auto &operator op##=(const SampledSpectrum &rhs) noexcept {                                    \
+    auto &operator op##=(const SampledSpectrum & rhs) noexcept {                                   \
         LUISA_ASSERT(rhs.dimension() == 1u || dimension() == rhs.dimension(),                      \
                      "Invalid sampled spectrum dimension for operator" #op "=: {} vs {}.",         \
                      dimension(), rhs.dimension());                                                \

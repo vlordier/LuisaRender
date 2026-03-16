@@ -35,6 +35,10 @@ endif ()
 option(LUISA_RENDER_BUILD_TESTS "Build tests for LuisaRender" ${LUISA_RENDER_MASTER_PROJECT})
 option(LUISA_RENDER_ENABLE_UNITY_BUILD "Enable unity build to speed up compilation" OFF)
 
+if (LUISA_RENDER_BUILD_TESTS)
+    enable_testing()
+endif ()
+
 include(src/compute/scripts/setup_output_dirs.cmake)
 
 # rpath

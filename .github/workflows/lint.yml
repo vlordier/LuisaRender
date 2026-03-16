@@ -141,3 +141,48 @@ jobs:
         with:
           name: clang-tidy-report
           path: clang-tidy-report.txt
+
+  # ─── 4. build-and-test ────────────────────────────────────────────────────
+  # Builds the CPU-only test executables (test_u64, test_sky, test_sphere) and
+  # runs them via CTest.  No GPU SDK is required because all hardware-specific
+  # backends are disabled at configure time.
+  build-and-test:
+    name: "build-and-test"
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: "Install build dependencies"
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get -y install \
+            clang-18 cmake ninja-build \
+            libxinerama-dev libxcursor-dev libxi-dev \
+            libvulkan-dev libxkbcommon-dev libxrandr-dev \
+            uuid-dev
+
+      - name: "Configure"
+        run: |
+          cmake -S . -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_C_COMPILER=clang-18 \
+            -DCMAKE_CXX_COMPILER=clang++-18 \
+            -DLUISA_COMPUTE_ENABLE_CUDA=OFF \
+            -DLUISA_COMPUTE_ENABLE_VULKAN=OFF \
+            -DLUISA_COMPUTE_ENABLE_DX=OFF \
+            -DLUISA_COMPUTE_ENABLE_METAL=OFF \
+            -DLUISA_RENDER_BUILD_TESTS=ON
+
+      - name: "Build tests"
+        run: |
+          cmake --build build --target test_u64 test_sky test_sphere -j "$(nproc)"
+
+      - name: "Run tests (CTest)"
+        working-directory: build
+        run: |
+          # Individual test timeouts are set via set_tests_properties in CMakeLists.txt.
+          # --timeout here is a global safety-net for any test that lacks a per-test timeout.
+          ctest --output-on-failure --timeout 300 -j "$(nproc)"
+

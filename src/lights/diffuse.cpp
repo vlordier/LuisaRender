@@ -156,7 +156,7 @@ public:
             auto two_sided = light->node<DiffuseLight>()->two_sided();
             Float3 we = make_float3();
             if (two_sided) {
-                $if(u_direction.x > 0.5f) {
+                $if (u_direction.x > 0.5f) {
                     we = sample_cosine_hemisphere(make_float2(u_direction.x * 2.f - 1.f, u_direction.y));
                 }
                 $else {

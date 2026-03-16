@@ -77,4 +77,4 @@ template<typename ProbTable, typename AliasTable>
 
 }// namespace luisa::render
 
-LUISA_STRUCT(luisa::render::AliasEntry, prob, alias){};
+LUISA_STRUCT(luisa::render::AliasEntry, prob, alias) {};
