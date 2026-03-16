@@ -256,7 +256,7 @@ private:
             val = pow(val * slope + offset, power);
             return luma + sat * (val - luma);
         };
-        return agxEotf(agxLook(agx(color)));// TODO: implement AgX tone mapping
+        return agxEotf(agxLook(agx(color)));
     }
     [[nodiscard]] static auto _linear_to_srgb(Expr<float3> color) noexcept {
         return ite(color <= .0031308f,
