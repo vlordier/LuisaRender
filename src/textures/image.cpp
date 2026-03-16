@@ -53,7 +53,6 @@ public:
         for (auto &c : filter) { c = static_cast<char>(tolower(c)); }
         for (auto &c : address) { c = static_cast<char>(tolower(c)); }
         auto address_mode = [&address, desc] {
-            for (auto &c : address) { c = static_cast<char>(tolower(c)); }
             if (address == "zero") { return TextureSampler::Address::ZERO; }
             if (address == "edge") { return TextureSampler::Address::EDGE; }
             if (address == "mirror") { return TextureSampler::Address::MIRROR; }
@@ -63,7 +62,6 @@ public:
                 address, desc->source_location().string());
         }();
         auto filter_mode = [&filter, desc] {
-            for (auto &c : filter) { c = static_cast<char>(tolower(c)); }
             if (filter == "point") { return TextureSampler::Filter::POINT; }
             if (filter == "bilinear") { return TextureSampler::Filter::LINEAR_POINT; }
             if (filter == "trilinear") { return TextureSampler::Filter::LINEAR_LINEAR; }
