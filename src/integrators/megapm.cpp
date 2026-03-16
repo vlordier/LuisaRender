@@ -390,7 +390,9 @@ protected:
         auto photon_per_iter = node<MegakernelPhotonMapping>()->photon_per_iter();
         auto pixel_count = resolution.x * resolution.y;
         auto spectrum = camera->pipeline().spectrum();
-        //TODO: use sampler right
+        // TODO: the sampler is repurposed to generate photon-emission samples by appending
+        // add_x columns to the camera resolution; ideally the photon-emission sampler should be
+        // independent (a separate SamplerInstance) so that the two sample streams don't share state.
         uint add_x = (photon_per_iter + resolution.y - 1) / resolution.y;
         sampler()->reset(command_buffer, make_uint2(resolution.x + add_x, resolution.y), pixel_count + add_x * resolution.y, spp);
         command_buffer << compute::synchronize();
@@ -500,13 +502,16 @@ protected:
         auto sample_id = 0u;
         bool initial_flag = false;
         uint runtime_spp = 0u;
-        //TODO: maybe swap the for order for better radius convergence
+        // TODO: consider iterating spp in the outer loop so all shutter samples contribute to
+        // each SPPM radius-shrink iteration, which would give faster convergence of the search radius.
         for (auto s : shutter_samples) {
             pipeline().update(command_buffer, s.point.time);
             runtime_spp += s.spp;
             for (auto i = 0u; i < s.spp; i++) {
-                //emit phtons then calculate L
-                //TODO: accurate size reset
+                //emit photons then calculate L
+                // TODO: photon_reset() dispatches over the full photon buffer every iteration;
+                // only photons emitted this iteration need resetting — track the active count to
+                // avoid clearing unused slots.
                 command_buffer << photon_reset().dispatch(photons.size());
                 command_buffer << emit(sample_id, s.point.time)
                                       .dispatch(make_uint2(add_x, resolution.y));
@@ -654,7 +659,9 @@ protected:
                         Li += w * beta * eval.f * light_sample.eval.L;
                     };
                 }
-                //TODO: get this done
+                // TODO: classify the intersection as diffuse vs. specular using roughness so that
+                // photon lookup is only triggered for sufficiently rough surfaces; specular/near-specular
+                // surfaces should keep tracing (caustic photon pass) rather than stopping here.
                 auto roughness = closure->roughness();
                 Bool stop_check;
                 if (node<MegakernelPhotonMapping>()->separate_direct()) {

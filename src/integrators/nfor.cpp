@@ -155,7 +155,10 @@ public:
             });
         if (enabled) {
             _image = pipeline.device().create_image<float>(
-                channels == 1u ?// TODO: support FLOAT2
+                // TODO: FLOAT2 storage is not handled; callers that need 2-component auxiliary buffers
+                // currently fall back to FLOAT4, wasting bandwidth.  Add a `channels == 2u` branch
+                // mapping to PixelStorage::FLOAT2 once all backends support it.
+                channels == 1u ?
                     PixelStorage::FLOAT1 :
                     PixelStorage::FLOAT4,
                 resolution);

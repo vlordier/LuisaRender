@@ -289,7 +289,7 @@ luisa::unique_ptr<Integrator::Instance> GradientPathTracing::build(
     Float2 roughness;
     pipeline().surfaces().dispatch(surface_tag, [&](auto surface) noexcept {
         PolymorphicCall<Surface::Closure> call;
-        surface->closure(call, *it, swl, make_float3(0.f, 0.f, 1.f), 1.f, time);// TODO fix
+        surface->closure(call, *it, swl, make_float3(0.f, 0.f, 1.f), 1.f, time);// TODO: wo is hardcoded to (0,0,1) just to query roughness; use the actual incoming direction for a correct roughness estimate.
         call.execute([&](auto closure) noexcept {
             roughness = closure->roughness();
         });
@@ -346,7 +346,7 @@ luisa::unique_ptr<Integrator::Instance> GradientPathTracing::build(
                 result.jacobian = h_length_squared * wo_dot_h;
             };
 
-            result.success = ite(cos_theta(tangent_space_shifted_wi) * cos_theta(tangent_space_shifted_wo) >= 0.f, false, result.success);// TODO check reject
+            result.success = ite(cos_theta(tangent_space_shifted_wi) * cos_theta(tangent_space_shifted_wo) >= 0.f, false, result.success);// TODO: verify rejection sign — transmission shifts require wi and wo to be in opposite hemispheres (product < 0), so this >= 0 check correctly invalidates same-hemisphere pairs for refraction.
         };
     }
     $else {
@@ -360,7 +360,7 @@ luisa::unique_ptr<Integrator::Instance> GradientPathTracing::build(
         result.wo = tangent_space_shifted_wo;
         result.jacobian = wo_dot_h;
 
-        result.success = ite(cos_theta(tangent_space_shifted_wi) * cos_theta(tangent_space_shifted_wo) <= 0.f, false, result.success);// TODO check reject
+        result.success = ite(cos_theta(tangent_space_shifted_wi) * cos_theta(tangent_space_shifted_wo) <= 0.f, false, result.success);// TODO: verify rejection sign — reflection shifts require wi and wo in the same hemisphere (product > 0), so this <= 0 check correctly invalidates cross-hemisphere pairs for reflection.
     };
 
     return result;
@@ -538,7 +538,9 @@ luisa::unique_ptr<Integrator::Instance> GradientPathTracing::build(
                 result += main.weight * eval.L;
             };
         }
-        // Subsurface omitted TODO
+        // TODO: subsurface scattering is not yet supported in GPT — when a surface has a
+        // subsurface medium (BSSRDF), the outgoing vertex should be sampled from the exit
+        // distribution rather than using surface BSDF sampling.
 
         for (int i = 0; i < 4; i++) {
             auto &shifted = shifteds[i];
@@ -547,13 +549,13 @@ luisa::unique_ptr<Integrator::Instance> GradientPathTracing::build(
             };
         }
 
-        // Strict normal check to produce the same results as bidirectional methods when normal mapping is used.
-        // TODO
+        // TODO: enforce strict-normal check here — reject the main path vertex when the geometric
+        // and shading normals disagree (dot(wo, Ng) * dot(wi, Ng) < 0), as bidirectional methods do,
+        // to suppress light leaks introduced by normal mapping.
 
         // Main PT Loop
         $for (depth, node<GradientPathTracing>()->max_depth()) {
-            // Strict normal check to produce the same results as bidirectional methods when normal mapping is used.
-            // TODO
+            // TODO: same strict-normal check needed inside the loop for each new vertex.
 
             auto last_segment = depth + 1 == node<GradientPathTracing>()->max_depth();
             $if (!main.it.shape().has_surface()) { $break; };
@@ -606,7 +608,8 @@ luisa::unique_ptr<Integrator::Instance> GradientPathTracing::build(
                     main.add_radiance(main_weight * main_light_eval.f * main_light_sample.eval.L);
                 }
 
-                // strict normal not implemented TODO
+                // TODO: add strict-normal check here to reject vertices where geometric and shading
+                // normals disagree — required before iterating over shifted paths below.
                 for (auto &&i : dsl::dynamic_range(4u)) {
                     auto shifted = load_ray_state(i);
                     SampledSpectrum main_contribution{swl.dimension(), 0.f};
@@ -659,9 +662,11 @@ luisa::unique_ptr<Integrator::Instance> GradientPathTracing::build(
                                 shifted_contribution = jacobian * (shifted_bsdf_value * shifted_emitter_radiance) * shifted.weight * shifted.pdf_div_main_pdf / new_denominator;
                             };
                             $case ((uint)RayConnection::RAY_NOT_CONNECTED) {
-                                // TODO
+                                // TODO: finish RAY_NOT_CONNECTED shift — the shifted path has not yet
+                                // been reconnected to the light; need to sample a new connection to the
+                                // same emitter as the main path and accumulate the MIS-weighted contribution.
                                 Float2 shifted_roughness;
-                                // TODO: No strict normal here
+                                // TODO: add strict-normal check here once the check is implemented for the main path.
                                 auto shifted_surface_tag = shifted.it.shape().surface_tag();
                                 auto shifted_light_sample = light_sampler()->sample(shifted.it, u_light_selection, u_light_surface, swl, time);
                                 auto shifted_light_eval = Surface::Evaluation::zero(swl.dimension());
@@ -701,7 +706,10 @@ luisa::unique_ptr<Integrator::Instance> GradientPathTracing::build(
                                     };
                                 }
                                 $else {
-                                    // TODO: Check if this is correct
+                                    // TODO: check whether killing the shifted path (shift_successful = false)
+                                    // is the correct fallback when shifted_emitter_radiance is zero or the
+                                    // connection evaluation fails; may need to fall back to central-radiance
+                                    // contribution instead.
                                     shift_successful = false;
                                 };
                             };
@@ -733,7 +741,8 @@ luisa::unique_ptr<Integrator::Instance> GradientPathTracing::build(
             auto main_wo = main_bsdf_result.sample.wi;
 
             auto main_wo_dot_ng = dot(main.it.shading().n(), main_wo);
-            // TODO: strict normal
+            // TODO: add strict-normal check here (reject when dot(main_wo, geometric_n) and
+            // dot(main_wo, shading_n) have opposite signs) to suppress light leaks from normal maps.
 
             auto previous_main_it = main.it;
             auto previous_main_ray = main.ray;
@@ -756,7 +765,8 @@ luisa::unique_ptr<Integrator::Instance> GradientPathTracing::build(
                     };
                 }
 
-                // TODO: subsurface scattering
+                // TODO: subsurface scattering — when the surface has a BSSRDF, accumulate the
+                // subsurface radiance term here using a separate subsurface path sample.
 
                 main_next_vertex_type = get_vertex_type(make_shared<Interaction>(main.it), swl, time);
             }
@@ -785,7 +795,7 @@ luisa::unique_ptr<Integrator::Instance> GradientPathTracing::build(
             //     main_emitter_pdf, 0.f);
             auto main_lum_pdf = main_emitter_pdf;
 
-            auto main_weight = main_previous_weight / (main_lum_pdf + main_bsdf_pdf);// TODO_EPSILON
+            auto main_weight = main_previous_weight / (main_lum_pdf + main_bsdf_pdf);// TODO: guard against near-zero denominator (main_lum_pdf + main_bsdf_pdf ≈ 0) to avoid NaN/Inf weights.
 
             if (node<GradientPathTracing>()->central_radiance()) {
                 main.add_radiance(main_emitter_radiance * main_weight * main_bsdf_result.sample.eval.f);
@@ -830,7 +840,7 @@ luisa::unique_ptr<Integrator::Instance> GradientPathTracing::build(
                                 PolymorphicCall<Surface::Closure> call;
                                 surface->closure(call, previous_main_it, swl, incoming_direction, 1.f, time);
                                 call.execute([&](auto closure) noexcept {
-                                    shifted_bsdf_eval = closure->evaluate(incoming_direction, main.ray->direction());// TODO check if main.ray right
+                                    shifted_bsdf_eval = closure->evaluate(incoming_direction, main.ray->direction());// TODO: verify that main.ray->direction() is the correct outgoing direction here; it may need to be the shifted outgoing direction instead.
                                 });
                             });
                             auto shifted_bsdf_value = shifted_bsdf_eval.f;
@@ -857,7 +867,7 @@ luisa::unique_ptr<Integrator::Instance> GradientPathTracing::build(
                             auto shifted_vertex_type = get_vertex_type(make_shared<Interaction>(shifted.it), swl, time);
                             $if (main_vertex_type == (uint)VertexType::VERTEX_TYPE_DIFFUSE & main_next_vertex_type == (uint)VertexType::VERTEX_TYPE_DIFFUSE & shifted_vertex_type == (uint)VertexType::VERTEX_TYPE_DIFFUSE) {
                                 // Reconnect shift
-                                $if (!last_segment | main_hit_emitter /*| main.it has subsurface TODO*/) {
+                                $if (!last_segment | main_hit_emitter /*| main.it has subsurface — TODO: add subsurface condition once BSSRDF is supported */) {
                                     ReconnectionShiftResult shift_result;
                                     auto environment_connection = def(false);
 
@@ -879,14 +889,14 @@ luisa::unique_ptr<Integrator::Instance> GradientPathTracing::build(
                                         auto incoming_direction = -shifted.ray->direction();
                                         auto outgoing_direction = shift_result.wo;
 
-                                        // TODO strict normal check
+                                        // TODO: add strict-normal check here for the shifted vertex.
                                         auto shifted_bsdf_pdf = def(0.f);
                                         auto shifted_bsdf_value = SampledSpectrum{swl.dimension(), 0.f};
                                         pipeline().surfaces().dispatch(shifted.it.shape().surface_tag(), [&](auto surface) noexcept {
                                             PolymorphicCall<Surface::Closure> call;
                                             surface->closure(call, shifted.it, swl, incoming_direction, 1.f, time);
                                             call.execute([&](auto closure) noexcept {
-                                                auto shifted_bsdf_eval = closure->evaluate(incoming_direction, outgoing_direction);// TODO check
+                                                auto shifted_bsdf_eval = closure->evaluate(incoming_direction, outgoing_direction);// TODO: verify that `outgoing_direction` (from shift_result.wo) is in the tangent frame of `shifted.it`, not the main path vertex.
                                                 shifted_bsdf_pdf = shifted_bsdf_eval.pdf;
                                                 shifted_bsdf_value = shifted_bsdf_eval.f;
                                             });
@@ -902,20 +912,21 @@ luisa::unique_ptr<Integrator::Instance> GradientPathTracing::build(
 
                                             shifted.connection_status = (uint)RayConnection::RAY_RECENTLY_CONNECTED;
 
-                                            $if (main_hit_emitter /*| has subsurface TODO*/) {
+                                            $if (main_hit_emitter /*| has subsurface — TODO: add subsurface branch once BSSRDF is supported */) {
                                                 SampledSpectrum shifted_emitter_radiance{swl.dimension(), 0.f};
                                                 auto shifted_lum_pdf = def(0.f);
 
                                                 $if (main.it.valid()) {
                                                     $if (main_hit_emitter) {
-                                                        // Check if correct TODO
+                                                        // TODO: verify emitter evaluation: evaluate_hit uses shifted.it.p()
+                                                        // as origin which may differ from the shifted path's actual origin.
                                                         // From shift.p -> main.p
                                                         auto eval = light_sampler()->evaluate_hit(main.it, shifted.it.p(), swl, time);
                                                         shifted_emitter_radiance = eval.L;
                                                         shifted_lum_pdf = eval.pdf;
                                                     };
 
-                                                    // TODO subsurface
+                                                    // TODO: subsurface — accumulate BSSRDF exit radiance here when supported.
                                                 }
                                                 $else {
                                                     shifted_emitter_radiance = main_emitter_radiance;
@@ -931,7 +942,9 @@ luisa::unique_ptr<Integrator::Instance> GradientPathTracing::build(
                                     };
                                 }
                                 $else {
-                                    // TODO: Check if this is correct
+                                    // TODO: check whether setting alive=false is the right fallback
+                                    // when the half-vector shift fails (shift_failed_flag is true) and
+                                    // the emitter radiance is zero — may need to use central radiance.
                                     shifted.alive = false;
                                 };
                             }
@@ -939,9 +952,12 @@ luisa::unique_ptr<Integrator::Instance> GradientPathTracing::build(
                                 // Half-vector shift
                                 SampledSpectrum shifted_emitter_radiance{swl.dimension(), 0.f};
 
-                                // Deny shifts between Dirac and non-Dirac BSDFs. TODO
+                                // TODO: reject shifts between Dirac (delta) and non-Dirac BSDFs here —
+                                // such shifts are invalid because the pdf of the main path's delta lobe
+                                // is zero in the non-delta measure of the shifted path (and vice versa).
 
-                                // TODO check if wo is wo
+                                // TODO: verify that `-shifted.ray->direction()` is the correct wo here;
+                                // for shifted paths the outgoing direction at the previous vertex may differ.
                                 auto shifted_bsdf_eta = def(0.f);// eta at previous main it
                                 pipeline().surfaces().dispatch(shifted.it.shape().surface_tag(), [&](auto surface) noexcept {
                                     PolymorphicCall<Surface::Closure> shifted_call;
@@ -960,7 +976,9 @@ luisa::unique_ptr<Integrator::Instance> GradientPathTracing::build(
                                     tangent_space_incoming_direction,
                                     main_bsdf_eta, shifted_bsdf_eta);
 
-                                // TODO  BSDF:EDelta
+                                // TODO: handle delta (Dirac) BSDFs in the shift — when the BSDF is
+                                // delta (e.g. perfect mirror/glass), the half-vector shift is undefined
+                                // and the path should instead be reconnected or marked as failed.
 
                                 auto shift_failed_flag = def(false);
                                 auto shifted_bsdf_pdf = def(0.f);
@@ -997,7 +1015,7 @@ luisa::unique_ptr<Integrator::Instance> GradientPathTracing::build(
                                         shifted.weight *= eval.f / eval.pdf;
                                         shifted.pdf_div_main_pdf *= pdf_division_hack(shifted_bsdf_pdf, main_bsdf_pdf);
                                     };
-                                    // Strict normal TODO
+                                    // TODO: add strict-normal check here for the half-vector shifted vertex.
                                 };
 
                                 $if (!shift_failed_flag) {
@@ -1044,7 +1062,7 @@ luisa::unique_ptr<Integrator::Instance> GradientPathTracing::build(
                                                     shifted_lum_pdf = eval.pdf;
                                                     shifted_emitter_radiance = eval.L;
                                                 };
-                                                // TODO subsurface
+                                                // TODO: subsurface — accumulate BSSRDF exit radiance here when supported.
                                             };
                                         };
                                     };
@@ -1087,7 +1105,9 @@ luisa::unique_ptr<Integrator::Instance> GradientPathTracing::build(
             };
 
             // Stop if the base path hit the environment.
-            // TODO main.rRec.type
+            // TODO: filter by path flags (equivalent to Mitsuba's rRec.type EIndirectSurfaceRadiance)
+            // to skip direct-emission contributions that have already been counted via MIS,
+            // preventing double-counting when next-event estimation is used.
             $if (!main.it.valid() /*| !(main.rRec.type & RadianceQueryRecord::EIndirectSurfaceRadiance)*/) {
                 $break;
             };

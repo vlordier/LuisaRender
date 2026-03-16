@@ -437,7 +437,12 @@ private:
             _last_frame_time = current_time;
             if (!_rendering_done && _window->should_close()) {
                 command_buffer << synchronize();
-                exit(0);// FIXME: exit gracefully
+                // FIXME: exit gracefully — Film has no abort-signal mechanism yet, so a clean
+                // early exit requires either (a) adding a `should_abort()` virtual to FilmInstance
+                // that integrators poll each iteration, or (b) raising SIGINT so the main thread
+                // unwinds via its signal handler.  Until that plumbing exists, exit(0) is used to
+                // avoid leaving the GPU in a bad state.
+                exit(0);
             }
             command_buffer << commit();
             _window->prepare_frame();

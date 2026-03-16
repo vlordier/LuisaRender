@@ -478,7 +478,7 @@ void MegakernelWaveFrontInstance::_render_one_camera(
                 work_counter.atomic((uint)src).fetch_sub(1u);
                 work_counter.atomic((uint)dst).fetch_add(1u);
 			};
-            auto generate_ray_shader = [&](UInt path_id, UInt work_id) noexcept {//TODO: add fetch_state and set_state for sampler
+            auto generate_ray_shader = [&](UInt path_id, UInt work_id) noexcept {// TODO: wavefront sampler state must be saved/restored per-path via fetch_state/set_state so that paths that span multiple waves resume with the correct sample sequence.
                 auto pixel_id = work_id % pixel_count;
                 auto sample_id = base_spp + work_id / pixel_count;
                 auto pixel_coord = make_uint2(pixel_id % resolution.x, pixel_id / resolution.x);
