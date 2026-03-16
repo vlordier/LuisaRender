@@ -1,5 +1,7 @@
 # Generated from CLion Inspection settings
 ---
+# Only report diagnostics for first-party headers; excludes src/ext/ and src/compute/.
+HeaderFilterRegex: 'src/(?!(ext|compute)).*\.(h|cuh)$'
 Checks: '-*,
 bugprone-argument-comment,
 bugprone-assert-side-effect,
