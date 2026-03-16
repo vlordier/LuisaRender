@@ -228,7 +228,7 @@ Var<Hit> Geometry::trace_closest(const Var<Ray> &ray_in) const noexcept {
         auto ray = ray_in;
         auto hit = _accel->intersect(ray, {});
         constexpr auto max_iterations = 100u;
-        constexpr auto epsilone = 1e-5f;
+        constexpr auto epsilon = 1e-5f;
         $for (i [[maybe_unused]], max_iterations) {
             $if (hit->miss()) { $break; };
             $if (!this->_alpha_skip(ray, hit)) { $break; };
@@ -240,7 +240,7 @@ Var<Hit> Geometry::trace_closest(const Var<Ray> &ray_in) const noexcept {
             };
 #endif
             ray = compute::make_ray(ray->origin(), ray->direction(),
-                                    hit.committed_ray_t + epsilone,
+                                    hit.committed_ray_t + epsilon,
                                     ray->t_max());
             hit = _accel->intersect(ray, {});
         };
