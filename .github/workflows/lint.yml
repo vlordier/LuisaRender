@@ -143,9 +143,14 @@ jobs:
           path: clang-tidy-report.txt
 
   # ─── 4. build-and-test ────────────────────────────────────────────────────
-  # Builds the CPU-only test executables (test_u64, test_sky, test_sphere) and
-  # runs them via CTest.  No GPU SDK is required because all hardware-specific
-  # backends are disabled at configure time.
+  # Builds the CPU-only test executables and runs them via CTest.
+  # No GPU SDK is required because all hardware-specific backends are disabled
+  # at configure time.
+  #
+  # Tests are categorised by CTest LABELS:
+  #   unit        – fast, deterministic, pure CPU arithmetic / data-structure tests
+  #   integration – multi-component CPU tests (ThreadPool, sky, sphere subdivision,
+  #                 SDL scene-description parsing)
   build-and-test:
     name: "build-and-test"
     runs-on: ubuntu-24.04
@@ -175,14 +180,34 @@ jobs:
             -DLUISA_COMPUTE_ENABLE_METAL=OFF \
             -DLUISA_RENDER_BUILD_TESTS=ON
 
-      - name: "Build tests"
+      - name: "Build unit tests"
         run: |
-          cmake --build build --target test_u64 test_sky test_sphere -j "$(nproc)"
+          cmake --build build \
+            --target test_u64 test_complex test_colorspace test_alias_table_unit \
+            -j "$(nproc)"
 
-      - name: "Run tests (CTest)"
+      - name: "Run unit tests"
         working-directory: build
         run: |
-          # Individual test timeouts are set via set_tests_properties in CMakeLists.txt.
-          # --timeout here is a global safety-net for any test that lacks a per-test timeout.
-          ctest --output-on-failure --timeout 300 -j "$(nproc)"
+          # Run unit tests first – they are fast and catch regressions quickly.
+          ctest --output-on-failure -L unit --timeout 120 -j "$(nproc)"
+
+      - name: "Build integration tests"
+        run: |
+          cmake --build build \
+            --target test_sky test_sphere test_scene_node_tag \
+            -j "$(nproc)"
+
+      - name: "Run integration tests"
+        working-directory: build
+        run: |
+          # Integration tests may take longer; global safety-net at 300 s.
+          ctest --output-on-failure -L integration --timeout 300 -j "$(nproc)"
+
+      - name: "Upload CTest results"
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ctest-results
+          path: build/Testing/
 
