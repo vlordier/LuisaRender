@@ -11,7 +11,7 @@
 
 namespace luisa::render {
 
-// TODO
+// IES profile support: parsing is implemented; GPU-side sampling and light integration are pending.
 class IESProfile {
 
 private:

@@ -11,7 +11,8 @@
 
 namespace luisa::render {
 
-// TODO: texture cache
+// Image loading utility. A shared texture cache to avoid reloading identical images
+// from disk is not yet implemented; callers are responsible for deduplication.
 class LoadedImage {
 
 public:
