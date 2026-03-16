@@ -124,7 +124,7 @@ public:
             };
 
             // add emission
-            // TODO
+            // TODO: add emissive medium contribution (Le) to the sampled distance result.
 
             return sample_ans;
         }

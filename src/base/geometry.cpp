@@ -12,7 +12,7 @@ namespace luisa::render {
 void Geometry::build(CommandBuffer &command_buffer,
                      luisa::span<const Shape *const> shapes,
                      float init_time) noexcept {
-    // TODO: AccelOption
+    // TODO: AccelOption — expose user-facing hint flags (e.g. prefer fast build vs. fast trace) via SceneNodeDesc.
     _accel = _pipeline.device().create_accel({});
     for (auto i = 0u; i < 3u; ++i) {
         _world_max[i] = -std::numeric_limits<float>::max();
@@ -175,7 +175,8 @@ Bool Geometry::_alpha_skip(const Var<Ray> &ray, const Var<SurfaceHit> &hit) cons
                 if (auto surface = _pipeline.surfaces().impl(i);
                     surface->maybe_non_opaque()) {
                     $case (i) {
-                        // TODO: pass the correct swl and time
+                        // TODO: pass the correct sampled wavelengths (swl) and time to evaluate_opacity
+                        //       so that wavelength-dependent opacity is handled properly.
                         if (auto opacity = surface->evaluate_opacity(*it, 0.f)) {
                             skip = u > *opacity;
                         } else {

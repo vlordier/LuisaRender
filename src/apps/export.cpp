@@ -35,7 +35,7 @@ void replace(json::string_t &str, luisa::string_view from, luisa::string_view to
 
 int main(int argc, char *argv[]) {
 
-    // TODO: Parse command line arguments.
+    // TODO: Parse command line arguments for output path, scale, and other export options.
 
     using namespace std::string_view_literals;
     if (argc < 2 || argv[1] == "-h"sv || argv[1] == "--help"sv) {

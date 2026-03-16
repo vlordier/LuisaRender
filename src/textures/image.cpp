@@ -188,15 +188,15 @@ luisa::unique_ptr<Texture::Instance> ImageTexture::build(Pipeline &pipeline, Com
 }
 
 void ImageTexture::_generate_mipmaps_gamma(Pipeline &pipeline, CommandBuffer &command_buffer, Image<float> &image) const noexcept {
-    // TODO
+    // Not yet implemented: generate mip levels by averaging 2x2 pixel blocks in gamma-corrected space.
 }
 
 void ImageTexture::_generate_mipmaps_linear(Pipeline &pipeline, CommandBuffer &command_buffer, Image<float> &image) const noexcept {
-    // TODO
+    // Not yet implemented: generate mip levels by averaging 2x2 pixel blocks in linear space.
 }
 
 void ImageTexture::_generate_mipmaps_sRGB(Pipeline &pipeline, CommandBuffer &command_buffer, Image<float> &image) const noexcept {
-    // TODO
+    // Not yet implemented: convert to linear, average 2x2 pixel blocks, then convert back to sRGB per mip level.
 }
 
 }// namespace luisa::render

@@ -96,7 +96,7 @@ luisa::unique_ptr<Pipeline> Pipeline::create(Device &device, Stream &stream, con
 }
 
 bool Pipeline::update(CommandBuffer &command_buffer, float time) noexcept {
-    // TODO: support deformable meshes
+    // TODO: support deformable meshes — vertex positions change per frame but topology is fixed.
     auto updated = _geometry->update(command_buffer, time);
     if (_any_dynamic_transform) {
         updated = true;
