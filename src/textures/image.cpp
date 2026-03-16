@@ -21,7 +21,7 @@ public:
     };
 
 private:
-    std::shared_future<LoadedImage> _image;// TODO: release host memory after all builds
+    std::shared_future<LoadedImage> _image;// TODO: release host-side pixel memory once all GPU uploads are complete to reduce peak RAM.
     float2 _uv_scale;
     float2 _uv_offset;
     TextureSampler _sampler{};
@@ -166,7 +166,7 @@ public:
     [[nodiscard]] Float4 evaluate(
         const Interaction &it, Expr<float> time) const noexcept override {
         auto uv = _compute_uv(it);
-        auto v = pipeline().tex2d(_texture_id).sample(uv);// TODO: LOD
+        auto v = pipeline().tex2d(_texture_id).sample(uv);// TODO: pass LOD/anisotropy for mip-mapped sampling
         return _decode(v);
     }
 };

@@ -181,7 +181,8 @@ int main(int argc, char *argv[]) {
         if (specular_map) { LUISA_INFO("Specular: {}", *specular_map); }
         if (shininess_map) { LUISA_INFO("Shininess: {}", *shininess_map); }
 
-        // TODO: transparency & transmission
+        // TODO: transparency & transmission — export alpha/transmission textures from Assimp's
+        //       AI_MATKEY_OPACITY / AI_MATKEY_TRANSMISSION_FACTOR and map them to the scene format.
 
         // roughness
         json::string_t rough_tex;

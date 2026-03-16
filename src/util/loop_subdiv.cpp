@@ -369,7 +369,7 @@ SubdivMesh loop_subdivide(luisa::span<const Vertex> vertices,
         usedVerts[v[i]] = i;
         auto p = pLimit[i];
         auto n = nLimit[i];
-        // FIXME: uv
+        // FIXME: UV coordinates are hardcoded to zero; needs proper interpolation from input mesh.
         mesh.vertices[i] = Vertex::encode(p, n, make_float2(0.f));
     }
     for (auto i = 0u; i < f.size(); ++i) {

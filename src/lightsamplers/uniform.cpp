@@ -142,7 +142,6 @@ private:
         LUISA_ASSERT(pipeline().environment() != nullptr, "No environment in the scene.");
         return pipeline().environment()->sample(swl, time, u);
     }
-    //sample single light for L_emit.
     [[nodiscard]] LightSampler::Sample _sample_light_le(
                                               Expr<uint> tag, Expr<float2> u_light, Expr<float2> u_direction,
                                               const SampledWavelengths &swl,
