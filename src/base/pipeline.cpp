@@ -11,8 +11,7 @@ namespace luisa::render {
 
 inline Pipeline::Pipeline(Device &device) noexcept
     : _device{device},
-      _bindless_array{device.create_bindless_array(bindless_array_capacity)},
-      _general_buffer_arena{luisa::make_unique<BufferArena>(device, 16_M)} {}
+      _bindless_array{device.create_bindless_array(bindless_array_capacity)} {}
 
 Pipeline::~Pipeline() noexcept = default;
 

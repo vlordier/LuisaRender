@@ -62,7 +62,7 @@ public:
                   for (auto &c : look) { c = static_cast<char>(std::tolower(c)); }
                   if (look == "golden") { return ToneMapping::AgX_GOLDEN; }
                   if (look == "punchy") { return ToneMapping::AgX_PUNCHY; }
-                  if (!look.empty() || look != "default") {
+                  if (!look.empty() && look != "default") {
                       LUISA_WARNING_WITH_LOCATION(
                           "Unknown AgX look: \"{}\". "
                           "Available options are: \"default\", \"golden\", \"punchy\". "

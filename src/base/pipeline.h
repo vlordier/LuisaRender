@@ -37,7 +37,6 @@ using compute::BindlessBuffer;
 using compute::BindlessTexture2D;
 using compute::BindlessTexture3D;
 using compute::Buffer;
-using compute::BufferArena;
 using compute::BufferView;
 using compute::Callable;
 using compute::Device;
@@ -64,7 +63,6 @@ public:
 private:
     Device &_device;
     BindlessArray _bindless_array;
-    luisa::unique_ptr<BufferArena> _general_buffer_arena;
     size_t _bindless_buffer_count{0u};
     size_t _bindless_tex2d_count{0u};
     size_t _bindless_tex3d_count{0u};
