@@ -172,12 +172,6 @@ public:
             auto we_world = it_light.shading().local_to_world(we);
             DiffuseLightClosure closure{light, swl(), time()};
             auto eval = closure._evaluate_pt(it_light);
-            //if (two_sided) {
-            //    eval.pdf *= cosine_hemisphere_pdf(we.z)*0.5f;
-            //} else {
-            //    eval.pdf *= cosine_hemisphere_pdf(we.z);
-            //}
-            //cancel out the cos term from outside le->beta
             if (two_sided) {
                 eval.pdf *= 0.5f * inv_pi;
             } else {
