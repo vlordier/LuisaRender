@@ -125,6 +125,10 @@ public:
 
             // add emission
             // TODO: add emissive medium contribution (Le) to the sampled distance result.
+            //   A volumetric emitter adds radiance along the path proportional to the
+            //   emission coefficient sigma_a * Le (where Le is the spectral emission
+            //   density).  The contribution should be weighted by the path throughput
+            //   beta and accumulated into the radiance estimate before returning.
 
             return sample_ans;
         }

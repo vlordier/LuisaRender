@@ -193,7 +193,12 @@ protected:
         auto ray = camera_ray;
 
 #ifdef VPT_NAIVE_ENABLE_MEDIUM_STACK_INIT
-        // TODO: bug in initialization of medium tracker where the angle between shared edge is small
+        // TODO: bug in initialization of medium tracker where the angle between shared edge is small —
+        //   when two mesh triangles share a very shallow edge the ray cast for medium-stack
+        //   bootstrapping may skip the surface due to self-intersection offset, causing the
+        //   tracker to undercount enter/exit events and assign the wrong medium to the path.
+        //   Fix: tighten the ray-offset epsilon for medium-init rays, or use a two-sided
+        //   intersection test that does not require offset-based origin shifting.
         auto depth_track = def<uint>(0u);
         $while (true) {
             auto it = pipeline().geometry()->intersect(ray);

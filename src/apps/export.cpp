@@ -36,6 +36,12 @@ void replace(json::string_t &str, luisa::string_view from, luisa::string_view to
 int main(int argc, char *argv[]) {
 
     // TODO: Parse command line arguments for output path, scale, and other export options.
+    //   Currently the tool only accepts the single input scene-file path; a proper CLI
+    //   should add at minimum:
+    //     --output <path>   override the default output directory (sibling of input)
+    //     --scale <float>   global geometry scale factor applied before export
+    //     --format <str>    target format passed to Assimp (e.g. "obj", "gltf2", "fbx")
+    //   Consider using the same cxxopts-based parser already used in apps/cli.cpp.
 
     using namespace std::string_view_literals;
     if (argc < 2 || argv[1] == "-h"sv || argv[1] == "--help"sv) {

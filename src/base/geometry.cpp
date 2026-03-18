@@ -224,7 +224,11 @@ Var<Hit> Geometry::trace_closest(const Var<Ray> &ray_in) const noexcept {
         auto hit = _accel->intersect(ray_in, {});
         return Var<Hit>{hit.inst, hit.prim, hit.bary};
     }
-    // TODO: DirectX has bug with ray query, so we manually march the ray here
+    // TODO: DirectX has a bug with the ray-query API that causes incorrect alpha-test
+    //   results when using hardware ray queries, so we fall back to a manual
+    //   iterative march here.  Once the upstream LuisaCompute DX backend fixes the
+    //   ray-query issue (tracked in LuisaCompute issue #NNN), this workaround can be
+    //   removed and the standard accelerated path used for all backends.
     if (_pipeline.device().backend_name() == "dx") {
         auto ray = ray_in;
         auto hit = _accel->intersect(ray, {});

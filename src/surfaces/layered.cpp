@@ -502,7 +502,13 @@ void LayeredSurfaceInstance::populate_closure(Surface::Closure *closure_in, cons
 
     _top->populate_closure(closure->top(), it, wo, eta_i);
     auto eta_top = closure->top()->eta();
-    _bottom->populate_closure(closure->bottom(), it, wo, eta_top.value_or(1.f));// FIXME: should pass eta_i (incident medium IOR) rather than eta_top
+    // FIXME: should pass eta_i (incident medium IOR) rather than eta_top when
+    //   populating the bottom layer.  eta_top is the IOR on the exit side of the top
+    //   layer (i.e. the IOR of the medium between the two layers), which is only
+    //   correct when the layers are separated by vacuum.  For a physically accurate
+    //   multi-layer model, the IOR seen by the bottom layer's incident ray is determined
+    //   by the medium filling the inter-layer gap, not the top surface's transmitted IOR.
+    _bottom->populate_closure(closure->bottom(), it, wo, eta_top.value_or(1.f));
 }
 
 using TwoSidedNormalMapOpacityLayeredSurface = TwoSidedWrapper<NormalMapWrapper<OpacitySurfaceWrapper<
