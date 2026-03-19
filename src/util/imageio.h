@@ -11,7 +11,8 @@
 
 namespace luisa::render {
 
-// TODO: texture cache
+// Image loading utility. A shared texture cache to avoid reloading identical images
+// from disk is not yet implemented; callers are responsible for deduplication.
 class LoadedImage {
 
 public:
@@ -40,8 +41,8 @@ public:
     LoadedImage(const LoadedImage &) noexcept = delete;
     LoadedImage &operator=(const LoadedImage &) noexcept = delete;
     [[nodiscard]] auto size() const noexcept { return _resolution; }
-    [[nodiscard]] void *pixels(uint level = 0u) noexcept { return _pixels; }
-    [[nodiscard]] const void *pixels(uint level = 0u) const noexcept { return _pixels; }
+    [[nodiscard]] void *pixels() noexcept { return _pixels; }
+    [[nodiscard]] const void *pixels() const noexcept { return _pixels; }
     [[nodiscard]] auto pixel_storage() const noexcept { return _storage; }
     [[nodiscard]] auto channels() const noexcept { return compute::pixel_storage_channel_count(_storage); }
     [[nodiscard]] auto pixel_count() const noexcept { return _resolution.x * _resolution.y; }

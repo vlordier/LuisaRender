@@ -1,5 +1,10 @@
 # Generated from CLion Inspection settings
 ---
+# Only report diagnostics for first-party headers; excludes src/ext/ and src/compute/.
+HeaderFilterRegex: 'src/(?!(ext|compute)).*\.(h|cuh)$'
+# Treat every enabled check as an error so clang-tidy exits non-zero immediately
+# on any finding, rather than relying solely on downstream grep in CI.
+WarningsAsErrors: '*'
 Checks: '-*,
 bugprone-argument-comment,
 bugprone-assert-side-effect,
@@ -144,4 +149,11 @@ readability-static-accessed-through-instance,
 readability-static-definition-in-anonymous-namespace,
 readability-string-compare,
 readability-uniqueptr-delete-release,
-readability-use-anyofallof'
+readability-use-anyofallof,
+# --- Additional checks added for stricter linting ---
+# Catch implicit int→wider widening in multiplications (e.g. int*int → long)
+bugprone-implicit-widening-of-multiplication-result,
+# Disallow goto: modern C++ code should use structured control flow
+cppcoreguidelines-avoid-goto,
+# Catch duplicate #include directives in a single TU
+readability-duplicate-include'

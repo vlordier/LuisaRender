@@ -238,7 +238,8 @@ public:
     }
 
 public:
-    // TODO: are these OK?
+    // TODO: albedo() and roughness() proxy to the top layer; a proper implementation should
+    //       combine top and bottom contributions weighted by the actual energy transfer.
     [[nodiscard]] SampledSpectrum albedo() const noexcept override { return _top->albedo(); }
     [[nodiscard]] Float2 roughness() const noexcept override { return _top->roughness(); }
     [[nodiscard]] const Interaction &it() const noexcept override { return context<Context>().it; }
@@ -393,7 +394,7 @@ private:
         };
         return {.f = f / Float(ctx.samples),
                 .pdf = lerp(1.f / (4.f * pi), pdf_sum / Float(ctx.samples), 0.9f),
-                .f_diffuse = SampledSpectrum{swl().dimension()},// TODO: not the true diffuse pdf
+                .f_diffuse = SampledSpectrum{swl().dimension()},// TODO: f_diffuse should accumulate the actual diffuse-lobe contribution through the layers
                 .pdf_diffuse = 0.f};
     }
     [[nodiscard]] Surface::Sample _sample(Expr<float3> wo, Expr<float> u_lobe, Expr<float2> u,
@@ -459,7 +460,7 @@ private:
                     w_local = it.shading().world_to_local(w);
                     $if((bs.event & Surface::event_transmit) != 0u) {
                         s = Surface::Sample{
-                            .eval = {.f = f, .pdf = pdf, .f_diffuse = SampledSpectrum{swl().dimension()}, .pdf_diffuse = 0.f},// TODO: not the true diffuse
+                            .eval = {.f = f, .pdf = pdf, .f_diffuse = SampledSpectrum{swl().dimension()}, .pdf_diffuse = 0.f},// TODO: f_diffuse should be the actual diffuse contribution
                             .wi = w,
                             .event = ite(same_hemisphere(w_local, wo_local),
                                          Surface::event_reflect,
@@ -501,7 +502,13 @@ void LayeredSurfaceInstance::populate_closure(Surface::Closure *closure_in, cons
 
     _top->populate_closure(closure->top(), it, wo, eta_i);
     auto eta_top = closure->top()->eta();
-    _bottom->populate_closure(closure->bottom(), it, wo, eta_top.value_or(1.f));// FIXME: eta_i is wrong
+    // FIXME: should pass eta_i (incident medium IOR) rather than eta_top when
+    //   populating the bottom layer.  eta_top is the IOR on the exit side of the top
+    //   layer (i.e. the IOR of the medium between the two layers), which is only
+    //   correct when the layers are separated by vacuum.  For a physically accurate
+    //   multi-layer model, the IOR seen by the bottom layer's incident ray is determined
+    //   by the medium filling the inter-layer gap, not the top surface's transmitted IOR.
+    _bottom->populate_closure(closure->bottom(), it, wo, eta_top.value_or(1.f));
 }
 
 using TwoSidedNormalMapOpacityLayeredSurface = TwoSidedWrapper<NormalMapWrapper<OpacitySurfaceWrapper<

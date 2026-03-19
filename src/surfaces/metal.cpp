@@ -131,7 +131,8 @@ public:
                     "Invalid wavelength range [{}, {}] in eta list. [{}]",
                     lambda.front(), lambda.back(), desc->source_location().string());
             }
-            // TODO: scan rather than binary search
+            // TODO: replace the O(n log n) binary-search interpolation with a single O(n) scan
+            //       since the LUT wavelengths are uniformly spaced and lambda is already sorted.
             luisa::vector<float2> lut(ior::lut_size);
             for (auto i = 0u; i < ior::lut_size; i++) {
                 auto wavelength = static_cast<float>(

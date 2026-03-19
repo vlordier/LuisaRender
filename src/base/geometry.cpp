@@ -12,7 +12,7 @@ namespace luisa::render {
 void Geometry::build(CommandBuffer &command_buffer,
                      luisa::span<const Shape *const> shapes,
                      float init_time) noexcept {
-    // TODO: AccelOption
+    // TODO: AccelOption — expose user-facing hint flags (e.g. prefer fast build vs. fast trace) via SceneNodeDesc.
     _accel = _pipeline.device().create_accel({});
     for (auto i = 0u; i < 3u; ++i) {
         _world_max[i] = -std::numeric_limits<float>::max();
@@ -175,7 +175,8 @@ Bool Geometry::_alpha_skip(const Var<Ray> &ray, const Var<SurfaceHit> &hit) cons
                 if (auto surface = _pipeline.surfaces().impl(i);
                     surface->maybe_non_opaque()) {
                     $case (i) {
-                        // TODO: pass the correct swl and time
+                        // TODO: pass the correct sampled wavelengths (swl) and time to evaluate_opacity
+                        //       so that wavelength-dependent opacity is handled properly.
                         if (auto opacity = surface->evaluate_opacity(*it, 0.f)) {
                             skip = u > *opacity;
                         } else {
@@ -223,12 +224,16 @@ Var<Hit> Geometry::trace_closest(const Var<Ray> &ray_in) const noexcept {
         auto hit = _accel->intersect(ray_in, {});
         return Var<Hit>{hit.inst, hit.prim, hit.bary};
     }
-    // TODO: DirectX has bug with ray query, so we manually march the ray here
+    // TODO: DirectX has a bug with the ray-query API that causes incorrect alpha-test
+    //   results when using hardware ray queries, so we fall back to a manual
+    //   iterative march here.  Once the upstream LuisaCompute DX backend fixes the
+    //   ray-query issue (tracked in LuisaCompute issue #NNN), this workaround can be
+    //   removed and the standard accelerated path used for all backends.
     if (_pipeline.device().backend_name() == "dx") {
         auto ray = ray_in;
         auto hit = _accel->intersect(ray, {});
         constexpr auto max_iterations = 100u;
-        constexpr auto epsilone = 1e-5f;
+        constexpr auto epsilon = 1e-5f;
         $for (i [[maybe_unused]], max_iterations) {
             $if (hit->miss()) { $break; };
             $if (!this->_alpha_skip(ray, hit)) { $break; };
@@ -240,7 +245,7 @@ Var<Hit> Geometry::trace_closest(const Var<Ray> &ray_in) const noexcept {
             };
 #endif
             ray = compute::make_ray(ray->origin(), ray->direction(),
-                                    hit.committed_ray_t + epsilone,
+                                    hit.committed_ray_t + epsilon,
                                     ray->t_max());
             hit = _accel->intersect(ray, {});
         };

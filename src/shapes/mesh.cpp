@@ -35,7 +35,6 @@ public:
         auto abs_path = std::filesystem::canonical(path).string();
         auto key = luisa::hash_value(abs_path, luisa::hash_value(subdiv_level));
 
-
         std::scoped_lock lock{mutex};
         if (auto m = loaded_meshes.at(key)) { return *m; }
 

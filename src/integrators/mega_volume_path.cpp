@@ -115,7 +115,12 @@ protected:
             medium_tracker.enter(medium->priority(), make_medium_info(medium->priority(), env_medium_tag));
         });
         auto ray = camera_ray;
-        // TODO: bug in initialization of medium tracker where the angle between shared edge is small
+        // TODO: bug in initialization of medium tracker where the angle between shared edge is small —
+        //   when two mesh triangles share a very shallow edge the ray cast for medium-stack
+        //   bootstrapping may skip the surface due to self-intersection offset, causing the
+        //   tracker to undercount enter/exit events and assign the wrong medium to the path.
+        //   Fix: tighten the ray-offset epsilon for medium-init rays, or use a two-sided
+        //   intersection test that does not require offset-based origin shifting.
         auto depth_track = def<uint>(0u);
         auto max_iterations = 644u;
 
@@ -459,8 +464,12 @@ protected:
 
             // hit ordinary surface
             $if (!it->shape().has_surface()) {
-                // TODO: if shape has no surface, we cannot get the right normal direction
-                //      so we cannot deal with medium tracker correctly (enter/exit)
+                // TODO: if shape has no surface, we cannot get the right normal direction,
+                //   so we cannot deal with medium tracker correctly (enter/exit).
+                //   The normal is needed to decide whether the ray is entering or leaving
+                //   the volume boundary; without a surface closure there is no shading
+                //   normal available.  Potential fix: fall back to the geometric normal
+                //   from the intersection record to make the enter/exit decision.
                 ray = it->spawn_ray(ray->direction());
                 pdf_bsdf = 1e16f;
             }
@@ -526,7 +535,11 @@ protected:
                             $if (*dispersive) { swl.terminate_secondary(); };
                         }
                         // direct lighting
-                        // TODO: add medium to direct lighting
+                        // TODO: add medium transmittance to direct lighting — the shadow ray
+                        //   from the surface to the light passes through the active medium, so
+                        //   its contribution should be multiplied by the Beer-Lambert transmittance
+                        //   T(shadow_ray) = exp(-sigma_t * t).  Requires tracing a transmittance
+                        //   estimate through the medium tracker along the shadow ray.
                         $if (light_sample.eval.pdf > 0.0f & !occluded) {
                             auto wi = light_sample.shadow_ray->direction();
                             auto eval = closure->evaluate(wo, wi);

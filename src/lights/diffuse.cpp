@@ -156,7 +156,7 @@ public:
             auto two_sided = light->node<DiffuseLight>()->two_sided();
             Float3 we = make_float3();
             if (two_sided) {
-                $if(u_direction.x > 0.5f) {
+                $if (u_direction.x > 0.5f) {
                     we = sample_cosine_hemisphere(make_float2(u_direction.x * 2.f - 1.f, u_direction.y));
                 }
                 $else {
@@ -172,12 +172,6 @@ public:
             auto we_world = it_light.shading().local_to_world(we);
             DiffuseLightClosure closure{light, swl(), time()};
             auto eval = closure._evaluate_pt(it_light);
-            //if (two_sided) {
-            //    eval.pdf *= cosine_hemisphere_pdf(we.z)*0.5f;
-            //} else {
-            //    eval.pdf *= cosine_hemisphere_pdf(we.z);
-            //}
-            //cancel out the cos term from outside le->beta
             if (two_sided) {
                 eval.pdf *= 0.5f * inv_pi;
             } else {

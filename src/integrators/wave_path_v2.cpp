@@ -508,7 +508,10 @@ void WavefrontPathTracingv2Instance::_render_one_camera(
             path_states.write_depth(path_id, 0u);
         };
 
-        // TODO: this could be entirely optimized out
+        // TODO: the per-block compaction below (Shared<uint> index) replicates a standard
+        // stream-compaction prefix-sum. If the caller already guarantees that all n threads are
+        // active (dispatch_x() < n is always true), the entire block can be replaced by
+        // queue_id = intersect_size.atomic(0u).fetch_add(1u) and the Shared<uint> overhead removed.
         auto queue_id = def(0u);
         {
              Shared<uint> index{1u};

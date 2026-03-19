@@ -21,7 +21,7 @@ public:
     };
 
 private:
-    std::shared_future<LoadedImage> _image;// TODO: release host memory after all builds
+    std::shared_future<LoadedImage> _image;// TODO: release host-side pixel memory once all GPU uploads are complete to reduce peak RAM.
     float2 _uv_scale;
     float2 _uv_offset;
     TextureSampler _sampler{};
@@ -53,7 +53,6 @@ public:
         for (auto &c : filter) { c = static_cast<char>(tolower(c)); }
         for (auto &c : address) { c = static_cast<char>(tolower(c)); }
         auto address_mode = [&address, desc] {
-            for (auto &c : address) { c = static_cast<char>(tolower(c)); }
             if (address == "zero") { return TextureSampler::Address::ZERO; }
             if (address == "edge") { return TextureSampler::Address::EDGE; }
             if (address == "mirror") { return TextureSampler::Address::MIRROR; }
@@ -63,7 +62,6 @@ public:
                 address, desc->source_location().string());
         }();
         auto filter_mode = [&filter, desc] {
-            for (auto &c : filter) { c = static_cast<char>(tolower(c)); }
             if (filter == "point") { return TextureSampler::Filter::POINT; }
             if (filter == "bilinear") { return TextureSampler::Filter::LINEAR_POINT; }
             if (filter == "trilinear") { return TextureSampler::Filter::LINEAR_LINEAR; }
@@ -168,7 +166,7 @@ public:
     [[nodiscard]] Float4 evaluate(
         const Interaction &it, Expr<float> time) const noexcept override {
         auto uv = _compute_uv(it);
-        auto v = pipeline().tex2d(_texture_id).sample(uv);// TODO: LOD
+        auto v = pipeline().tex2d(_texture_id).sample(uv);// TODO: pass LOD/anisotropy for mip-mapped sampling
         return _decode(v);
     }
 };
@@ -190,15 +188,15 @@ luisa::unique_ptr<Texture::Instance> ImageTexture::build(Pipeline &pipeline, Com
 }
 
 void ImageTexture::_generate_mipmaps_gamma(Pipeline &pipeline, CommandBuffer &command_buffer, Image<float> &image) const noexcept {
-    // TODO
+    // Not yet implemented: generate mip levels by averaging 2x2 pixel blocks in gamma-corrected space.
 }
 
 void ImageTexture::_generate_mipmaps_linear(Pipeline &pipeline, CommandBuffer &command_buffer, Image<float> &image) const noexcept {
-    // TODO
+    // Not yet implemented: generate mip levels by averaging 2x2 pixel blocks in linear space.
 }
 
 void ImageTexture::_generate_mipmaps_sRGB(Pipeline &pipeline, CommandBuffer &command_buffer, Image<float> &image) const noexcept {
-    // TODO
+    // Not yet implemented: convert to linear, average 2x2 pixel blocks, then convert back to sRGB per mip level.
 }
 
 }// namespace luisa::render

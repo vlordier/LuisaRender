@@ -369,7 +369,11 @@ SubdivMesh loop_subdivide(luisa::span<const Vertex> vertices,
         usedVerts[v[i]] = i;
         auto p = pLimit[i];
         auto n = nLimit[i];
-        // FIXME: uv
+        // FIXME: UV coordinates are hardcoded to zero; needs proper interpolation from input mesh.
+        //   Loop subdivision should apply the same subdivision weights to UV coordinates as to
+        //   vertex positions (even/odd stencils on the u and v components separately), taking
+        //   care at UV-boundary edges where the seam stencil differs from the interior stencil.
+        //   See DeRose et al. "Subdivision Surfaces in Character Animation" (SIGGRAPH 1998) §4.
         mesh.vertices[i] = Vertex::encode(p, n, make_float2(0.f));
     }
     for (auto i = 0u; i < f.size(); ++i) {

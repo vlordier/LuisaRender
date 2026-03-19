@@ -179,7 +179,7 @@ public:
         });                                                                                        \
         return *this;                                                                              \
     }                                                                                              \
-    auto &operator op##=(const SampledSpectrum &rhs) noexcept {                                    \
+    auto &operator op##=(const SampledSpectrum & rhs) noexcept {                                   \
         LUISA_ASSERT(rhs.dimension() == 1u || dimension() == rhs.dimension(),                      \
                      "Invalid sampled spectrum dimension for operator" #op "=: {} vs {}.",         \
                      dimension(), rhs.dimension());                                                \
@@ -249,7 +249,12 @@ using luisa::compute::min;
 [[nodiscard]] SampledSpectrum abs(const SampledSpectrum &t) noexcept;
 [[nodiscard]] SampledSpectrum sqrt(const SampledSpectrum &t) noexcept;
 [[nodiscard]] SampledSpectrum exp(const SampledSpectrum &t) noexcept;
-// TODO: other math functions
+[[nodiscard]] SampledSpectrum log(const SampledSpectrum &t) noexcept;
+[[nodiscard]] SampledSpectrum pow(const SampledSpectrum &base, Expr<float> exp) noexcept;
+[[nodiscard]] SampledSpectrum pow(const SampledSpectrum &base, const SampledSpectrum &exp) noexcept;
+[[nodiscard]] SampledSpectrum floor(const SampledSpectrum &t) noexcept;
+[[nodiscard]] SampledSpectrum ceil(const SampledSpectrum &t) noexcept;
+[[nodiscard]] SampledSpectrum round(const SampledSpectrum &t) noexcept;
 
 using luisa::lerp;
 using luisa::compute::fma;

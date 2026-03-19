@@ -245,9 +245,10 @@ public:
     }
     [[nodiscard]] BxDF::SampledDirection sample_wi(Expr<float3> wo, Expr<float2> u) const noexcept {
         static Callable impl = [](Float3 wo, Float2 u, Float gloss) noexcept {
-            // TODO: double check all this: there still seem to be some very
-            // occasional fireflies with clearcoat; presumably there is a bug
-            // somewhere.
+            // TODO: the GTR1 importance-sampling formula here occasionally produces fireflies with
+            // clearcoat — suspect the NDF normalisation or the Jacobian of the half-vector transform
+            // is off.  Cross-check against Burley 2012 §B.2 and verify that `pdf()` returns the
+            // correct value for this wh distribution so MIS weights are consistent.
             auto alpha2 = gloss * gloss;
             auto cosTheta = sqrt(max(0.f, (1.f - pow(alpha2, 1.f - u[0])) / (1.f - alpha2)));
             auto sinTheta = sqrt(max(0.f, 1.f - cosTheta * cosTheta));

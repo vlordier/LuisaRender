@@ -35,13 +35,19 @@ void replace(json::string_t &str, luisa::string_view from, luisa::string_view to
 
 int main(int argc, char *argv[]) {
 
-    // TODO: Parse command line arguments.
+    // TODO: Parse command line arguments for output path, scale, and other export options.
+    //   Currently the tool only accepts the single input scene-file path; a proper CLI
+    //   should add at minimum:
+    //     --output <path>   override the default output directory (sibling of input)
+    //     --scale <float>   global geometry scale factor applied before export
+    //     --format <str>    target format passed to Assimp (e.g. "obj", "gltf2", "fbx")
+    //   Consider using the same cxxopts-based parser already used in apps/cli.cpp.
 
     using namespace std::string_view_literals;
     if (argc < 2 || argv[1] == "-h"sv || argv[1] == "--help"sv) {
         std::cout << "Scene exporter for LuisaRender\n"
                   << "Usage: " << argv[0] << " <file>"
-                  << std::endl;
+                  << '\n';
         return 0;
     }
 
@@ -181,7 +187,8 @@ int main(int argc, char *argv[]) {
         if (specular_map) { LUISA_INFO("Specular: {}", *specular_map); }
         if (shininess_map) { LUISA_INFO("Shininess: {}", *shininess_map); }
 
-        // TODO: transparency & transmission
+        // TODO: transparency & transmission — export alpha/transmission textures from Assimp's
+        //       AI_MATKEY_OPACITY / AI_MATKEY_TRANSMISSION_FACTOR and map them to the scene format.
 
         // roughness
         json::string_t rough_tex;

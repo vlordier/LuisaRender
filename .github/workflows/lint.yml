@@ -1,0 +1,265 @@
+name: lint
+
+# Run on every push and every PR so violations surface early.
+on:
+  push:
+  pull_request:
+
+# Lint jobs are read-only; no write access to the repository or packages is needed.
+permissions:
+  contents: read
+
+jobs:
+  # ─── 1. clang-format ──────────────────────────────────────────────────────
+  # Checks that every first-party .cpp / .h / .cuh file is formatted
+  # according to the project's .clang-format rules.  Does NOT need a build.
+  clang-format:
+    name: "clang-format"
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: false   # formatting needs only the source tree
+
+      - name: "Install clang-format-18"
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get -y install clang-format-18
+
+      - name: "Check C++ formatting"
+        # --dry-run: do not modify files; --Werror: exit non-zero on any violation
+        run: |
+          find src -type f \( -name "*.cpp" -o -name "*.h" -o -name "*.cuh" \) \
+            ! -path "*/ext/*" ! -path "*/compute/*" \
+            | xargs clang-format-18 --dry-run --Werror
+
+  # ─── 2. cppcheck ──────────────────────────────────────────────────────────
+  # Language-agnostic static analysis; runs without a build or submodules.
+  cppcheck:
+    name: "cppcheck"
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: "Install cppcheck"
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get -y install cppcheck
+
+      - name: "Run cppcheck"
+        # --suppress=missingIncludeSystem: many system headers come from the submodule
+        # --inline-suppr: respect // cppcheck-suppress comments in source
+        # --error-exitcode=1: fail CI on any error-level finding
+        run: |
+          find src -type f -name "*.cpp" \
+            ! -path "*/ext/*" ! -path "*/compute/*" \
+            > /tmp/src_files.txt
+
+          cppcheck \
+            --enable=warning,style,performance,portability \
+            --std=c++20 \
+            --error-exitcode=1 \
+            --suppress=missingIncludeSystem \
+            --suppress=missingInclude \
+            --inline-suppr \
+            --template='[{file}:{line}] ({severity}) {message} [{id}]' \
+            --file-list=/tmp/src_files.txt \
+            2>&1 | tee cppcheck-report.txt
+
+      - name: "Upload cppcheck report"
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cppcheck-report
+          path: cppcheck-report.txt
+
+  # ─── 3. clang-tidy ────────────────────────────────────────────────────────
+  # Uses the project's .clang-tidy configuration (all bugprone-*, cert-*,
+  # modernize-*, performance-*, readability-* and other checks).
+  # Requires a CMake configure step to produce compile_commands.json;
+  # GPU backends (CUDA, Vulkan, DX, Metal) are disabled so no GPU SDK is needed.
+  clang-tidy:
+    name: "clang-tidy"
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive   # LuisaCompute headers are needed for type info
+
+      - name: "Install dependencies"
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get -y install \
+            clang-18 clang-tidy-18 cmake ninja-build \
+            libxinerama-dev libxcursor-dev libxi-dev \
+            libvulkan-dev libxkbcommon-dev libxrandr-dev \
+            uuid-dev
+
+      - name: "Configure (no GPU backends, export compile commands)"
+        run: |
+          cmake -S . -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_C_COMPILER=clang-18 \
+            -DCMAKE_CXX_COMPILER=clang++-18 \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+            -DLUISA_COMPUTE_ENABLE_CUDA=OFF \
+            -DLUISA_COMPUTE_ENABLE_VULKAN=OFF \
+            -DLUISA_COMPUTE_ENABLE_DX=OFF \
+            -DLUISA_COMPUTE_ENABLE_METAL=OFF \
+            -DLUISA_RENDER_BUILD_TESTS=OFF
+
+      - name: "Run clang-tidy"
+        # --header-filter restricts diagnostics to first-party headers.
+        # The positional regex at the end of the command restricts which
+        # translation units from compile_commands.json are analysed.
+        run: |
+          find src -type f -name "*.cpp" \
+            ! -path "*/ext/*" ! -path "*/compute/*" \
+            > /tmp/tidy_files.txt
+
+          # run-clang-tidy analyses all matching TUs in parallel.
+          run-clang-tidy-18 \
+            -p build \
+            -clang-tidy-binary clang-tidy-18 \
+            -header-filter 'src/(?!(ext|compute)).*\.(h|cuh)$' \
+            -j "$(nproc)" \
+            $(cat /tmp/tidy_files.txt | tr '\n' ' ') \
+            2>&1 | tee clang-tidy-report.txt
+
+          # Fail if any warning/error was emitted (lines contain a check name in brackets,
+          # e.g. [modernize-use-nullptr] or [readability-identifier-naming]).
+          if grep -qE '\[[-a-zA-Z0-9_]+\]' clang-tidy-report.txt; then
+            echo "clang-tidy found issues – see clang-tidy-report.txt"
+            exit 1
+          fi
+
+      - name: "Upload clang-tidy report"
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: clang-tidy-report
+          path: clang-tidy-report.txt
+
+  # ─── 4. build-and-test ────────────────────────────────────────────────────
+  # Builds the CPU-only test executables and runs them via CTest.
+  # No GPU SDK is required because all hardware-specific backends are disabled
+  # at configure time.
+  #
+  # Tests are categorised by CTest LABELS:
+  #   unit        – fast, deterministic, pure CPU arithmetic / data-structure tests
+  #   integration – multi-component CPU tests (ThreadPool, sky, sphere subdivision,
+  #                 SDL scene-description parsing)
+  build-and-test:
+    name: "build-and-test"
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: "Install build dependencies"
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get -y install \
+            clang-18 cmake ninja-build \
+            libxinerama-dev libxcursor-dev libxi-dev \
+            libvulkan-dev libxkbcommon-dev libxrandr-dev \
+            uuid-dev
+
+      - name: "Configure"
+        run: |
+          cmake -S . -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_C_COMPILER=clang-18 \
+            -DCMAKE_CXX_COMPILER=clang++-18 \
+            -DLUISA_COMPUTE_ENABLE_CUDA=OFF \
+            -DLUISA_COMPUTE_ENABLE_VULKAN=OFF \
+            -DLUISA_COMPUTE_ENABLE_DX=OFF \
+            -DLUISA_COMPUTE_ENABLE_METAL=OFF \
+            -DLUISA_RENDER_BUILD_TESTS=ON
+
+      - name: "Build unit tests"
+        run: |
+          cmake --build build \
+            --target test_u64 test_complex test_colorspace test_alias_table_unit \
+            -j "$(nproc)"
+
+      - name: "Run unit tests"
+        working-directory: build
+        run: |
+          # Run unit tests first – they are fast and catch regressions quickly.
+          ctest --output-on-failure -L unit --timeout 120 -j "$(nproc)"
+
+      - name: "Build integration tests"
+        run: |
+          cmake --build build \
+            --target test_sky test_sphere test_scene_node_tag \
+            -j "$(nproc)"
+
+      - name: "Run integration tests"
+        working-directory: build
+        run: |
+          # Integration tests may take longer; global safety-net at 300 s.
+          ctest --output-on-failure -L integration --timeout 300 -j "$(nproc)"
+
+      - name: "Upload CTest results"
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ctest-results
+          path: build/Testing/
+
+  # ─── 5. sanitizers ────────────────────────────────────────────────────────
+  # Builds the unit tests with AddressSanitizer + UndefinedBehaviorSanitizer
+  # and runs them.  ASan/UBSan catch memory safety and undefined-behavior bugs
+  # that pass through static analysis and normal test runs.
+  #
+  # Only pure-CPU unit tests are run here; the integration tests that require
+  # the full GPU stack are not run under sanitizers.
+  sanitizers:
+    name: "sanitizers (ASan + UBSan)"
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: "Install build dependencies"
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get -y install \
+            clang-18 cmake ninja-build \
+            libxinerama-dev libxcursor-dev libxi-dev \
+            libvulkan-dev libxkbcommon-dev libxrandr-dev \
+            uuid-dev
+
+      - name: "Configure (Debug + sanitizers)"
+        run: |
+          cmake -S . -B build-san -G Ninja \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_C_COMPILER=clang-18 \
+            -DCMAKE_CXX_COMPILER=clang++-18 \
+            -DLUISA_COMPUTE_ENABLE_CUDA=OFF \
+            -DLUISA_COMPUTE_ENABLE_VULKAN=OFF \
+            -DLUISA_COMPUTE_ENABLE_DX=OFF \
+            -DLUISA_COMPUTE_ENABLE_METAL=OFF \
+            -DLUISA_RENDER_BUILD_TESTS=ON \
+            -DLUISA_RENDER_ENABLE_SANITIZERS=ON
+
+      - name: "Build unit tests (sanitizers)"
+        run: |
+          cmake --build build-san \
+            --target test_u64 test_complex test_colorspace test_alias_table_unit \
+            -j "$(nproc)"
+
+      - name: "Run unit tests under ASan + UBSan"
+        working-directory: build-san
+        env:
+          # Abort on first UBSan violation; print full stack trace
+          UBSAN_OPTIONS: "halt_on_error=1:print_stacktrace=1"
+          ASAN_OPTIONS: "halt_on_error=1:detect_leaks=1"
+        run: |
+          ctest --output-on-failure -L unit --timeout 120 -j "$(nproc)"
+

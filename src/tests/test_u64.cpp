@@ -15,9 +15,7 @@ using namespace luisa::compute;
 }
 
 [[nodiscard]] constexpr auto uint2_to_u64(uint2 v) noexcept {
-    //    LUISA_INFO("{} {}", v.x, v.y);
     auto r = (static_cast<uint64_t>(v.x) << 32u) | v.y;
-    //    LUISA_INFO("R = {}", r);
     return r;
 }
 
@@ -45,12 +43,9 @@ public:
     explicit U64(uint64_t u = 0ull) noexcept : _bits{u64_to_uint2(u)} {}
     explicit U64(uint2 u) noexcept : _bits{u} {}
     explicit U64(uint u) noexcept : _bits{make_uint2(0u, u)} {}
-    U64(uint hi, uint lo)
-    noexcept : _bits{make_uint2(hi, lo)} {}
-    U64(U64 &&)
-    noexcept = default;
-    U64(const U64 &)
-    noexcept = default;
+    U64(uint hi, uint lo) noexcept : _bits{make_uint2(hi, lo)} {}
+    U64(U64 &&) noexcept = default;
+    U64(const U64 &) noexcept = default;
     U64 &operator=(U64 &&) noexcept = default;
     U64 &operator=(const U64 &) noexcept = default;
     [[nodiscard]] auto hi() const noexcept { return _bits.x; }

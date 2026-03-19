@@ -481,6 +481,39 @@ SampledSpectrum exp(const SampledSpectrum &t) noexcept {
     return t.map([](auto x) noexcept { return exp(x); });
 }
 
+SampledSpectrum log(const SampledSpectrum &t) noexcept {
+    return t.map([](auto x) noexcept { return log(x); });
+}
+
+SampledSpectrum pow(const SampledSpectrum &base, Expr<float> exp) noexcept {
+    return base.map([exp](auto x) noexcept { return pow(x, exp); });
+}
+
+SampledSpectrum pow(const SampledSpectrum &base, const SampledSpectrum &exp) noexcept {
+    auto n = std::max(base.dimension(), exp.dimension());
+    LUISA_ASSERT((base.dimension() == 1u || base.dimension() == n) &&
+                     (exp.dimension() == 1u || exp.dimension() == n),
+                 "Invalid spectrum dimensions for pow: (base = {}, exp = {}).",
+                 base.dimension(), exp.dimension());
+    auto ans = SampledSpectrum{n};
+    compute::outline([&] {
+        for (auto i = 0u; i < n; i++) { ans[i] = pow(base[i], exp[i]); }
+    });
+    return ans;
+}
+
+SampledSpectrum floor(const SampledSpectrum &t) noexcept {
+    return t.map([](auto x) noexcept { return floor(x); });
+}
+
+SampledSpectrum ceil(const SampledSpectrum &t) noexcept {
+    return t.map([](auto x) noexcept { return ceil(x); });
+}
+
+SampledSpectrum round(const SampledSpectrum &t) noexcept {
+    return t.map([](auto x) noexcept { return round(x); });
+}
+
 SampledSpectrum max(const SampledSpectrum &a, Expr<float> b) noexcept {
     return a.map([b](auto x) noexcept { return max(x, b); });
 }
@@ -574,42 +607,6 @@ Bool any(const SampledSpectrum &v) noexcept {
 Bool all(const SampledSpectrum &v) noexcept {
     return v.all([](auto x) noexcept { return x != 0.f; });
 }
-
-//SampledSpectrum fma(const SampledSpectrum &a, const SampledSpectrum &b, const SampledSpectrum &c) noexcept {
-//    auto n = std::max({a.dimension(), b.dimension(), c.dimension()});
-//    LUISA_ASSERT((a.dimension() == 1u || a.dimension() == n) &&
-//                     (b.dimension() == 1u || b.dimension() == n) &&
-//                     (c.dimension() == 1u || c.dimension() == n),
-//                 "Invalid spectrum dimensions for fma: (a = {}, b = {}, c = {}).",
-//                 a.dimension(), b.dimension(), c.dimension());
-//    SampledSpectrum r{n, 0.f};
-//    for (auto i = 0u; i < n; i++) { r[i] = fma(a[i], b[i], c[i]); }
-//    return r;
-//}
-//
-//SampledSpectrum fma(const SampledSpectrum &a, const SampledSpectrum &b, Expr<float> c) noexcept {
-//    return fma(a, b, SampledSpectrum{c});
-//}
-//
-//SampledSpectrum fma(const SampledSpectrum &a, Expr<float> b, const SampledSpectrum &c) noexcept {
-//    return fma(a, SampledSpectrum{b}, c);
-//}
-//
-//SampledSpectrum fma(const SampledSpectrum &a, Expr<float> b, Expr<float> c) noexcept {
-//    return fma(a, SampledSpectrum{b}, SampledSpectrum{c});
-//}
-//
-//SampledSpectrum fma(Expr<float> a, const SampledSpectrum &b, const SampledSpectrum &c) noexcept {
-//    return fma(SampledSpectrum{a}, b, c);
-//}
-//
-//SampledSpectrum fma(Expr<float> a, const SampledSpectrum &b, Expr<float> c) noexcept {
-//    return fma(SampledSpectrum{a}, b, SampledSpectrum{c});
-//}
-//
-//SampledSpectrum fma(Expr<float> a, Expr<float> b, const SampledSpectrum &c) noexcept {
-//    return fma(SampledSpectrum{a}, SampledSpectrum{b}, c);
-//}
 
 void SampledWavelengths::terminate_secondary() const noexcept {
     using namespace luisa::compute;

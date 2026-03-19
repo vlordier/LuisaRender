@@ -62,7 +62,7 @@ public:
                   for (auto &c : look) { c = static_cast<char>(std::tolower(c)); }
                   if (look == "golden") { return ToneMapping::AgX_GOLDEN; }
                   if (look == "punchy") { return ToneMapping::AgX_PUNCHY; }
-                  if (!look.empty() || look != "default") {
+                  if (!look.empty() && look != "default") {
                       LUISA_WARNING_WITH_LOCATION(
                           "Unknown AgX look: \"{}\". "
                           "Available options are: \"default\", \"golden\", \"punchy\". "
@@ -256,7 +256,7 @@ private:
             val = pow(val * slope + offset, power);
             return luma + sat * (val - luma);
         };
-        return agxEotf(agxLook(agx(color)));// TODO: implement AgX tone mapping
+        return agxEotf(agxLook(agx(color)));
     }
     [[nodiscard]] static auto _linear_to_srgb(Expr<float3> color) noexcept {
         return ite(color <= .0031308f,
@@ -437,7 +437,12 @@ private:
             _last_frame_time = current_time;
             if (!_rendering_done && _window->should_close()) {
                 command_buffer << synchronize();
-                exit(0);// FIXME: exit gracefully
+                // FIXME: exit gracefully — Film has no abort-signal mechanism yet, so a clean
+                // early exit requires either (a) adding a `should_abort()` virtual to FilmInstance
+                // that integrators poll each iteration, or (b) raising SIGINT so the main thread
+                // unwinds via its signal handler.  Until that plumbing exists, exit(0) is used to
+                // avoid leaving the GPU in a bad state.
+                exit(0);
             }
             command_buffer << commit();
             _window->prepare_frame();

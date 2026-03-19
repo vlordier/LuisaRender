@@ -142,19 +142,18 @@ private:
         LUISA_ASSERT(pipeline().environment() != nullptr, "No environment in the scene.");
         return pipeline().environment()->sample(swl, time, u);
     }
-    //sample single light for L_emit.
     [[nodiscard]] LightSampler::Sample _sample_light_le(
-                                              Expr<uint> tag, Expr<float2> u_light, Expr<float2> u_direction,
-                                              const SampledWavelengths &swl,
-                                              Expr<float> time) const noexcept override {
+        Expr<uint> tag, Expr<float2> u_light, Expr<float2> u_direction,
+        const SampledWavelengths &swl,
+        Expr<float> time) const noexcept override {
         LUISA_ASSERT(!pipeline().lights().empty(), "No lights in the scene.");
         auto handle = pipeline().buffer<Light::Handle>(_light_buffer_id).read(tag);
         auto light_inst = pipeline().geometry()->instance(handle.instance_id);
-        auto sp=Light::Sample::zero(swl.dimension());
+        auto sp = Light::Sample::zero(swl.dimension());
         Var<Ray> shadow_ray{};
         pipeline().lights().dispatch(light_inst.light_tag(), [&](auto light) noexcept {
             auto closure = light->closure(swl, time);
-            auto [sp_tp,ray_tp] = closure->sample_le(handle.instance_id, u_light, u_direction);
+            auto [sp_tp, ray_tp] = closure->sample_le(handle.instance_id, u_light, u_direction);
             sp = sp_tp;
             shadow_ray = ray_tp;
         });

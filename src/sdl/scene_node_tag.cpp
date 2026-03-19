@@ -50,4 +50,4 @@ SceneNodeTag parse_scene_node_tag(luisa::string_view tag_desc) noexcept {
     return SceneNodeTag::ROOT;
 }
 
-}
+}// namespace luisa::render
