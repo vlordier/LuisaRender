@@ -47,7 +47,7 @@ int main(int argc, char *argv[]) {
     if (argc < 2 || argv[1] == "-h"sv || argv[1] == "--help"sv) {
         std::cout << "Scene exporter for LuisaRender\n"
                   << "Usage: " << argv[0] << " <file>"
-                  << std::endl;
+                  << '\n';
         return 0;
     }
 

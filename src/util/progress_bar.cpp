@@ -19,7 +19,7 @@ void ProgressBar::reset() noexcept {
 
 void ProgressBar::done() noexcept {
     update(1.0);
-    std::cout << std::endl;
+    std::cout << '\n';
 }
 
 void ProgressBar::update(double progress) noexcept {

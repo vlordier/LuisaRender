@@ -15,9 +15,7 @@ using namespace luisa::compute;
 }
 
 [[nodiscard]] constexpr auto uint2_to_u64(uint2 v) noexcept {
-    //    LUISA_INFO("{} {}", v.x, v.y);
     auto r = (static_cast<uint64_t>(v.x) << 32u) | v.y;
-    //    LUISA_INFO("R = {}", r);
     return r;
 }
 

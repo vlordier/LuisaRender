@@ -75,17 +75,17 @@
             LUISA_WARNING_WITH_LOCATION(
                 "Failed to parse command line arguments: {}.",
                 e.what());
-            std::cout << cli.help() << std::endl;
+            std::cout << cli.help() << '\n';
             exit(-1);
         }
     }();
     if (options["help"].as<bool>()) {
-        std::cout << cli.help() << std::endl;
+        std::cout << cli.help() << '\n';
         exit(0);
     }
     if (options["scene"].count() == 0u) [[unlikely]] {
         LUISA_WARNING_WITH_LOCATION("Scene file not specified.");
-        std::cout << cli.help() << std::endl;
+        std::cout << cli.help() << '\n';
         exit(-1);
     }
     if (auto unknown = options.unmatched(); !unknown.empty()) [[unlikely]] {
