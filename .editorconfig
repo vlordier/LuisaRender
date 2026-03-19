@@ -1,0 +1,58 @@
+# .editorconfig
+# ─────────────────────────────────────────────────────────────────────────────
+# EditorConfig helps maintain consistent coding styles across editors.
+# See https://editorconfig.org for the specification.
+# ─────────────────────────────────────────────────────────────────────────────
+
+root = true
+
+# ── Default: all files ───────────────────────────────────────────────────────
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 4
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+# ── C / C++ source and headers ───────────────────────────────────────────────
+[*.{c,cpp,cxx,cc,h,hpp,hxx,cuh}]
+indent_style = space
+indent_size = 4
+max_line_length = 100
+
+# ── CMake files ──────────────────────────────────────────────────────────────
+[{CMakeLists.txt,*.cmake}]
+indent_style = space
+indent_size = 4
+
+# ── Python helper scripts ─────────────────────────────────────────────────────
+[*.py]
+indent_style = space
+indent_size = 4
+max_line_length = 120
+
+# ── YAML (GitHub Actions workflows, pre-commit config) ───────────────────────
+[*.{yml,yaml}]
+indent_style = space
+indent_size = 2
+
+# ── Markdown documentation ────────────────────────────────────────────────────
+[*.md]
+indent_style = space
+indent_size = 2
+trim_trailing_whitespace = false   # preserve trailing spaces (line break in Markdown)
+
+# ── Shell scripts ─────────────────────────────────────────────────────────────
+[*.sh]
+indent_style = space
+indent_size = 2
+
+# ── JSON ─────────────────────────────────────────────────────────────────────
+[*.json]
+indent_style = space
+indent_size = 2
+
+# ── Windows batch / PowerShell ────────────────────────────────────────────────
+[*.{bat,cmd,ps1}]
+end_of_line = crlf

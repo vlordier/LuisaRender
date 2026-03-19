@@ -211,3 +211,55 @@ jobs:
           name: ctest-results
           path: build/Testing/
 
+  # ─── 5. sanitizers ────────────────────────────────────────────────────────
+  # Builds the unit tests with AddressSanitizer + UndefinedBehaviorSanitizer
+  # and runs them.  ASan/UBSan catch memory safety and undefined-behavior bugs
+  # that pass through static analysis and normal test runs.
+  #
+  # Only pure-CPU unit tests are run here; the integration tests that require
+  # the full GPU stack are not run under sanitizers.
+  sanitizers:
+    name: "sanitizers (ASan + UBSan)"
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: "Install build dependencies"
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get -y install \
+            clang-18 cmake ninja-build \
+            libxinerama-dev libxcursor-dev libxi-dev \
+            libvulkan-dev libxkbcommon-dev libxrandr-dev \
+            uuid-dev
+
+      - name: "Configure (Debug + sanitizers)"
+        run: |
+          cmake -S . -B build-san -G Ninja \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_C_COMPILER=clang-18 \
+            -DCMAKE_CXX_COMPILER=clang++-18 \
+            -DLUISA_COMPUTE_ENABLE_CUDA=OFF \
+            -DLUISA_COMPUTE_ENABLE_VULKAN=OFF \
+            -DLUISA_COMPUTE_ENABLE_DX=OFF \
+            -DLUISA_COMPUTE_ENABLE_METAL=OFF \
+            -DLUISA_RENDER_BUILD_TESTS=ON \
+            -DLUISA_RENDER_ENABLE_SANITIZERS=ON
+
+      - name: "Build unit tests (sanitizers)"
+        run: |
+          cmake --build build-san \
+            --target test_u64 test_complex test_colorspace test_alias_table_unit \
+            -j "$(nproc)"
+
+      - name: "Run unit tests under ASan + UBSan"
+        working-directory: build-san
+        env:
+          # Abort on first UBSan violation; print full stack trace
+          UBSAN_OPTIONS: "halt_on_error=1:print_stacktrace=1"
+          ASAN_OPTIONS: "halt_on_error=1:detect_leaks=1"
+        run: |
+          ctest --output-on-failure -L unit --timeout 120 -j "$(nproc)"
+

@@ -35,6 +35,15 @@ endif ()
 option(LUISA_RENDER_BUILD_TESTS "Build tests for LuisaRender" ${LUISA_RENDER_MASTER_PROJECT})
 option(LUISA_RENDER_ENABLE_UNITY_BUILD "Enable unity build to speed up compilation" OFF)
 
+# ── Modular CMake helpers ──────────────────────────────────────────────────
+# CompilerWarnings : luisa_render_set_compiler_warnings(<target>)
+# Sanitizers       : luisa_render_enable_sanitizers(<target>)  (opt-in via
+#                    -DLUISA_RENDER_ENABLE_SANITIZERS=ON)
+# Dependencies     : Dependency inventory / documentation
+include(cmake/CompilerWarnings.cmake)
+include(cmake/Sanitizers.cmake)
+include(cmake/Dependencies.cmake)
+
 if (LUISA_RENDER_BUILD_TESTS)
     enable_testing()
 endif ()

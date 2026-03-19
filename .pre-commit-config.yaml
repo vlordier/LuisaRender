@@ -1,0 +1,56 @@
+# .pre-commit-config.yaml
+# ─────────────────────────────────────────────────────────────────────────────
+# Pre-commit hooks for LuisaRender.
+# Install the pre-commit framework:  pip install pre-commit
+# Enable hooks in your clone:        pre-commit install
+# Run all hooks manually:            pre-commit run --all-files
+# ─────────────────────────────────────────────────────────────────────────────
+
+repos:
+  # ── General hygiene ──────────────────────────────────────────────────────
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: end-of-file-fixer        # Ensure files end with a newline
+        exclude: '^src/(ext|compute)/'
+      - id: trailing-whitespace      # Remove trailing whitespace
+        exclude: '^src/(ext|compute)/'
+      - id: check-yaml               # Validate YAML syntax
+      - id: check-json               # Validate JSON syntax
+      - id: check-added-large-files  # Prevent accidentally committing large files
+        args: ['--maxkb=1024']
+      - id: mixed-line-ending        # Consistent LF line endings
+        args: ['--fix=lf']
+        exclude: '^src/(ext|compute)/|\.bat$|\.cmd$'
+      - id: check-merge-conflict     # Detect unresolved merge conflicts
+
+  # ── C++ formatting ───────────────────────────────────────────────────────
+  # Mirrors the CI clang-format check.  Uses the project's .clang-format rules.
+  # Pin to the same major version used in CI (clang-18).
+  - repo: https://github.com/pre-commit/mirrors-clang-format
+    rev: v18.1.8
+    hooks:
+      - id: clang-format
+        types_or: [c, c++, cuda]
+        # Only lint first-party files; skip vendored third-party code
+        exclude: '^src/(ext|compute)/'
+
+  # ── CMake formatting ─────────────────────────────────────────────────────
+  - repo: https://github.com/cmake-lint/cmake-lint
+    rev: 1.4.2
+    hooks:
+      - id: cmakelint
+        args: ['--linelength=100']
+        exclude: '^src/(ext|compute)/'
+
+  # ── Python scripts (tools/) ──────────────────────────────────────────────
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.4
+    hooks:
+      - id: ruff
+        args: ['--select=E,F,W', '--line-length=120']
+        files: '^tools/.*\.py$'
+
+# Default language version for hooks that need it
+default_language_version:
+  python: python3
